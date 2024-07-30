@@ -51,7 +51,7 @@ const requestPayment = async (req, res) => {
       NetworkCode,
       PhoneNumber,
       TransactionDesc,
-      AccountReference,
+      AccountReference, // This will be used as transactionId
       Currency,
       Amount,
       CallBackURL,
@@ -69,7 +69,7 @@ const requestPayment = async (req, res) => {
 
     console.log("Request body:", req.body);
 
-    //validate your body
+    // Validate your body
     const tripDetails = {
       userId,
       seats,
@@ -81,14 +81,13 @@ const requestPayment = async (req, res) => {
       leavesAt,
       from,
       to,
+      transactionId: AccountReference // Save AccountReference as transactionId
     };
 
-    //
     const jsonString = JSON.stringify(tripDetails);
-
     const urlEncodedBookingData = encodeURIComponent(jsonString);
-
     const formetedCallbackUrl = `${CallBackURL}?bookingData=${urlEncodedBookingData}`;
+
     const response = await axios.post(
       "https://sandbox.sasapay.app/api/v1/payments/request-payment/",
       {
@@ -107,6 +106,25 @@ const requestPayment = async (req, res) => {
         },
       }
     );
+
+    // Save the booking with initial payment status as pending
+    const newBooking = new Booking({
+      userId,
+      seats,
+      vehicleId,
+      vehiclename,
+      vehiclereg,
+      price,
+      tripdate,
+      leavesAt,
+      from,
+      to,
+      transactionId: AccountReference,
+      paymentStatus: 'pending'
+    });
+
+    await newBooking.save();
+
     res.json(response.data);
     console.log(response.data);
   } catch (error) {
@@ -193,14 +211,14 @@ const handleCallback = async (req, res) => {
   if (callbackData.ResultCode == 0) {
     console.log("A successful transaction");
     try {
-
-      //do proper validation before adding the record to db
-
+      // Update booking status to success
+      await Booking.updateOne(
+        { transactionId: jsonData.transactionId },
+        { paymentStatus: 'success' }
+      );
 
       const booking = await handleBooking(jsonData);
-
-      console.log(booking)
-      //for callbacks returning a structures json data is not neccessary
+      console.log(booking);
       res.status(200).json("ok");
     } catch (error) {
       console.error("Booking error:", error);
@@ -208,12 +226,23 @@ const handleCallback = async (req, res) => {
     }
   } else {
     console.log("A failed transaction");
+    try {
+      // Update booking status to failed
+      await Booking.updateOne(
+        { transactionId: jsonData.transactionId },
+        { paymentStatus: 'failed' }
+      );
+    } catch (error) {
+      console.error("Error updating booking status:", error);
+    }
     res.status(200).json("ok");
   }
 };
 
 app.post("/request-payment", requestPayment);
 app.post("/c2b-callback-results", handleCallback);
+
+
 
 module.exports = {
   requestPayment,

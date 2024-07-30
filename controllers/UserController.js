@@ -92,29 +92,61 @@ const getAllUsersByEmail = async (req, res) => {
 }
 
 
-
 const Login = async (req, res) => {
     try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ email });
-
-        if (!user) {
-            res.status(404).json({ error: 'User not found' });
-            return;
-        }
-
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-
-        if (!isPasswordValid) {
-            res.status(401).json({ error: 'Invalid password' });
-            return;
-        }
-            res.status(200).json({ message: 'Login successful',userid: user._id});
+      const { email, password } = req.body;
+      const user = await User.findOne({ email });
+  
+      if (!user) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+  
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+  
+      if (!isPasswordValid) {
+        res.status(401).json({ error: "Invalid password" });
+        return;
+      }
+      const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
+        expiresIn: 7,
+      });
+      res
+        .status(200)
+        .json({
+          message: "Login successful",
+          userid: user._id,
+          userdata: user,
+          token: token,
+        });
     } catch (error) {
-        console.log(error);
-        res.status(500).json({ error: 'Failed to login' });
+      console.log(error);
+      res.status(500).json({ error: "Failed to login" });
     }
-};
+  };
+
+// const Login = async (req, res) => {
+//     try {
+//         const { email, password } = req.body;
+//         const user = await User.findOne({ email });
+
+//         if (!user) {
+//             res.status(404).json({ error: 'User not found' });
+//             return;
+//         }
+
+//         const isPasswordValid = await bcrypt.compare(password, user.password);
+
+//         if (!isPasswordValid) {
+//             res.status(401).json({ error: 'Invalid password' });
+//             return;
+//         }
+//             res.status(200).json({ message: 'Login successful',userid: user._id});
+//     } catch (error) {
+//         console.log(error);
+//         res.status(500).json({ error: 'Failed to login' });
+//     }
+// };
 
 
 const getAllUsersById = async (req, res) => {

@@ -22,25 +22,34 @@ const BookingSchema = new Schema({
     type: Date,
     default: Date.now,
   },
-  vehiclename:{
-    type:String
+  vehiclename: {
+    type: String,
   },
-  vehiclereg:{
-    type:String
+  vehiclereg: {
+    type: String,
   },
 
-  leavesAt:{
-    type:String
+  leavesAt: {
+    type: String,
   },
-  from:{
-    type:String
+  from: {
+    type: String,
   },
-  to:{
-    type:String
+  to: {
+    type: String,
   },
-  tripdate:{
-    type:String
-  }
+  tripdate: {
+    type: String,
+  },
+  transactionId: {
+    type: String,
+    default: null,
+  },
+  paymentStatus: {
+    type: String,
+    enum: ["pending", "success", "failed"],
+    default: "pending",
+  },
 });
 const Booking = mongoose.model("bookings", BookingSchema);
 
